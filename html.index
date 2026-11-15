@@ -1,0 +1,422 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090d14">
+<title>Gold Analyzer V1.0</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#090d14;color:#e8edf5;font-family:Arial,sans-serif}
+header{padding:18px 15px;background:#111a27;border-bottom:1px solid #253247}
+header h1{margin:0;font-size:22px;color:#f3c969}
+header p{margin:6px 0 0;color:#8998ad;font-size:12px}
+main{padding:13px;max-width:850px;margin:auto}
+.card{background:#111a27;border:1px solid #263449;border-radius:13px;padding:14px;margin-bottom:12px}
+h2{font-size:15px;margin:0 0 12px;color:#f1c86b}
+.price{font-size:30px;font-weight:bold;color:#f3ce76}
+.muted{color:#91a0b5;font-size:12px}
+.status{font-size:12px;padding:6px 9px;border-radius:20px;background:#263449;display:inline-block}
+.green{color:#48d69a}
+.red{color:#ff7777}
+.yellow{color:#f4cc70}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.metric{background:#0b121d;padding:11px;border-radius:9px;min-width:0}
+.metric small{display:block;color:#91a0b5;font-size:11px;margin-bottom:7px}
+.metric strong{font-size:15px;overflow-wrap:anywhere}
+button{border:0;border-radius:9px;background:#e9bd60;color:#151515;padding:12px 15px;font-weight:bold;width:100%;font-size:14px}
+button:disabled{opacity:.5}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{padding:10px 5px;border-bottom:1px solid #263449;text-align:left}
+th{color:#91a0b5}
+.signal{font-size:23px;font-weight:bold;margin:5px 0 10px}
+ul{padding-left:18px;margin:8px 0}
+li{font-size:13px;color:#c1cada;margin:7px 0}
+input{width:100%;padding:11px;background:#0b121d;border:1px solid #34445c;border-radius:8px;color:white;margin:7px 0 12px}
+.note{font-size:11px;color:#8c9bb0;line-height:1.6}
+.footer{text-align:center;color:#697990;font-size:11px;padding:18px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>GOLD ANALYZER <span style="color:white">V1.0</span></h1>
+<p>XAUUSD • Market Structure • Liquidity • TP / SL Simulator</p>
+</header>
+
+<main>
+
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+<div>
+<div class="muted">XAUUSD / USD • Harga pembanding</div>
+<div class="price" id="price">---</div>
+<div class="muted" id="updated">Menunggu data harga...</div>
+</div>
+<span class="status" id="connection">MENGHUBUNGKAN</span>
+</div>
+<br>
+<button id="refresh" onclick="loadData()">PERBARUI ANALISIS</button>
+<p class="note">Sumber data publik Yahoo Finance. Data dapat terlambat, tidak tersedia, atau berbeda dari harga broker.</p>
+</div>
+
+<div class="card">
+<h2>ARAH MARKET</h2>
+<div class="signal yellow" id="signal">MENUNGGU DATA</div>
+<div class="muted" id="signalReason">Analisis akan muncul setelah data berhasil dimuat.</div>
+</div>
+
+<div class="card">
+<h2>MULTI TIMEFRAME</h2>
+<table>
+<thead><tr><th>TIMEFRAME</th><th>TREND</th><th>RSI</th><th>EMA</th></tr></thead>
+<tbody id="timeframes">
+<tr><td colspan="4">Menunggu data...</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>MARKET STRUCTURE</h2>
+<div class="grid">
+<div class="metric"><small>H4 STRUCTURE</small><strong id="structure4">---</strong></div>
+<div class="metric"><small>H1 STRUCTURE</small><strong id="structure1">---</strong></div>
+<div class="metric"><small>M15 STRUCTURE</small><strong id="structure15">---</strong></div>
+<div class="metric"><small>BREAK TERBARU</small><strong id="break">---</strong></div>
+</div>
+</div>
+
+<div class="card">
+<h2>LIQUIDITY ANALYSIS</h2>
+<div class="grid">
+<div class="metric"><small>BUY SIDE LIQUIDITY</small><strong id="bsl">---</strong></div>
+<div class="metric"><small>SELL SIDE LIQUIDITY</small><strong id="ssl">---</strong></div>
+<div class="metric"><small>SWEEP TERBARU</small><strong id="sweep">---</strong></div>
+<div class="metric"><small>EQUAL HIGH / LOW</small><strong id="equal">---</strong></div>
+</div>
+</div>
+
+<div class="card">
+<h2>INDIKATOR TEKNIKAL</h2>
+<div class="grid">
+<div class="metric"><small>EMA 20 (M15)</small><strong id="ema20">---</strong></div>
+<div class="metric"><small>EMA 50 (M15)</small><strong id="ema50">---</strong></div>
+<div class="metric"><small>RSI 14 (M15)</small><strong id="rsi">---</strong></div>
+<div class="metric"><small>ATR 14 (M15)</small><strong id="atr">---</strong></div>
+</div>
+</div>
+
+<div class="card">
+<h2>SUPPLY / DEMAND / FVG</h2>
+<div class="grid">
+<div class="metric"><small>SUPPLY AREA</small><strong id="supply">---</strong></div>
+<div class="metric"><small>DEMAND AREA</small><strong id="demand">---</strong></div>
+<div class="metric"><small>FAIR VALUE GAP</small><strong id="fvg">---</strong></div>
+<div class="metric"><small>PREMIUM / DISCOUNT</small><strong id="zone">---</strong></div>
+</div>
+</div>
+
+<div class="card">
+<h2>SIMULASI TARGET PROFIT & STOP LOSS</h2>
+<div class="muted">Perhitungan otomatis berdasarkan arah skenario dan volatilitas ATR.</div>
+<br>
+<div class="grid">
+<div class="metric"><small>ARAH SIMULASI</small><strong id="simDirection">WAIT</strong></div>
+<div class="metric"><small>HARGA ACUAN</small><strong id="entry">---</strong></div>
+<div class="metric"><small>STOP LOSS (SL)</small><strong id="sl">---</strong></div>
+<div class="metric"><small>TARGET PROFIT (TP)</small><strong id="tp">---</strong></div>
+<div class="metric"><small>JARAK RISIKO</small><strong id="riskDistance">---</strong></div>
+<div class="metric"><small>RISK / REWARD</small><strong>1 : 2</strong></div>
+</div>
+<p class="note">TP dan SL merupakan perkiraan matematis untuk latihan. Simulasi tidak memasukkan spread, komisi, slippage, atau aturan kontrak broker. Tidak ada order yang dikirim.</p>
+</div>
+
+<div class="card">
+<h2>ALASAN ANALISIS</h2>
+<ul id="reasons"><li>Menunggu data market.</li></ul>
+</div>
+
+<div class="card">
+<h2>PENGATURAN SUMBER DATA</h2>
+<div class="muted">Instrumen: XAUUSD (Gold/USD)</div>
+<div class="muted">Penyedia: Yahoo Finance — simbol XAUUSD=X</div>
+<div class="muted">Interval sumber: 15 menit dan 1 jam.</div>
+<p class="note">Data 4 jam dibuat dari penggabungan candle 1 jam. Jika penyedia tidak memberikan data, sistem akan menampilkan status gagal dan tidak membuat sinyal dari data kosong.</p>
+</div>
+
+<div class="footer">
+GOLD ANALYZER V1.0 • EDUCATIONAL SIMULATOR<br>
+Bukan penasihat keuangan atau sistem transaksi otomatis.
+</div>
+
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let market = null;
+
+function fmt(n){
+ return Number.isFinite(n) ? n.toFixed(2) : "---";
+}
+
+function avg(a){
+ return a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
+}
+
+function ema(values,period){
+ if(values.length<period) return NaN;
+ let k=2/(period+1);
+ let e=avg(values.slice(0,period));
+ for(let i=period;i<values.length;i++) e=values[i]*k+e*(1-k);
+ return e;
+}
+
+function rsi(values,period=14){
+ if(values.length<=period) return NaN;
+ let gain=0,loss=0;
+ for(let i=1;i<=period;i++){
+  let d=values[i]-values[i-1];
+  if(d>0)gain+=d;else loss-=d;
+ }
+ let ag=gain/period,al=loss/period;
+ for(let i=period+1;i<values.length;i++){
+  let d=values[i]-values[i-1];
+  ag=(ag*(period-1)+Math.max(d,0))/period;
+  al=(al*(period-1)+Math.max(-d,0))/period;
+ }
+ if(al===0)return 100;
+ return 100-(100/(1+ag/al));
+}
+
+function atr(candles,period=14){
+ if(candles.length<=period)return NaN;
+ let trs=[];
+ for(let i=1;i<candles.length;i++){
+  let c=candles[i],p=candles[i-1];
+  trs.push(Math.max(c.h-c.l,Math.abs(c.h-p.c),Math.abs(c.l-p.c)));
+ }
+ return avg(trs.slice(-period));
+}
+
+function pivots(c){
+ let highs=[],lows=[];
+ for(let i=2;i<c.length-2;i++){
+  if(c[i].h>c[i-1].h&&c[i].h>c[i-2].h&&
+     c[i].h>c[i+1].h&&c[i].h>c[i+2].h) highs.push({i,p:c[i].h});
+  if(c[i].l<c[i-1].l&&c[i].l<c[i-2].l&&
+     c[i].l<c[i+1].l&&c[i].l<c[i+2].l) lows.push({i,p:c[i].l});
+ }
+ return {highs,lows};
+}
+
+function structure(c){
+ let p=pivots(c);
+ let hs=p.highs.slice(-2),ls=p.lows.slice(-2);
+ let h="N/A",l="N/A";
+ if(hs.length===2)h=hs[1].p>hs[0].p?"HH":"LH";
+ if(ls.length===2)l=ls[1].p>ls[0].p?"HL":"LL";
+ let s="MIXED";
+ if(h==="HH"&&l==="HL")s="BULLISH";
+ if(h==="LH"&&l==="LL")s="BEARISH";
+ return {p,h,l,s};
+}
+
+function trend(c){
+ let closes=c.map(x=>x.c);
+ let e20=ema(closes,20),e50=ema(closes,50);
+ let last=closes[closes.length-1];
+ let t="SIDEWAYS";
+ if(last>e20&&e20>e50)t="BULLISH";
+ if(last<e20&&e20<e50)t="BEARISH";
+ return {e20,e50,r:rsi(closes),a:atr(c),t,last};
+}
+
+function detectSweep(c,p){
+ let recent=c.slice(-10);
+ let last=recent[recent.length-1];
+ let highs=p.highs.filter(x=>x.i<c.length-3);
+ let lows=p.lows.filter(x=>x.i<c.length-3);
+ let high=highs.length?highs[highs.length-1].p:NaN;
+ let low=lows.length?lows[lows.length-1].p:NaN;
+ let bsl=Number.isFinite(high)&&last.h>high&&last.c<high;
+ let ssl=Number.isFinite(low)&&last.l<low&&last.c>low;
+ return {bsl,ssl,high,low};
+}
+
+function detectBreak(c,p){
+ let last=c[c.length-1];
+ let highs=p.highs.filter(x=>x.i<c.length-1);
+ let lows=p.lows.filter(x=>x.i<c.length-1);
+ let h=highs.length?highs[highs.length-1].p:NaN;
+ let l=lows.length?lows[lows.length-1].p:NaN;
+ if(Number.isFinite(h)&&last.c>h)return "BULLISH BOS";
+ if(Number.isFinite(l)&&last.c<l)return "BEARISH BOS";
+ return "BELUM ADA BREAK";
+}
+
+function zones(c){
+ let n=c.length,last=c[n-1],prior=c[n-3];
+ let supply="Belum terdeteksi",demand="Belum terdeteksi";
+ let fvg="Tidak terdeteksi";
+ let hi=Math.max(...c.slice(-30).map(x=>x.h));
+ let lo=Math.min(...c.slice(-30).map(x=>x.l));
+ let mid=(hi+lo)/2;
+ if(n>=3){
+  if(c[n-1].l>c[n-3].h) fvg="Bullish FVG";
+  else if(c[n-1].h<c[n-3].l) fvg="Bearish FVG";
+ }
+ let p=pivots(c);
+ if(p.highs.length)supply=fmt(p.highs[p.highs.length-1].p);
+ if(p.lows.length)demand=fmt(p.lows[p.lows.length-1].p);
+ return {supply,demand,fvg,zone:last.c>mid?"PREMIUM": "DISCOUNT",mid};
+}
+
+function aggregate4h(c){
+ let out=[];
+ for(let i=0;i+3<c.length;i+=4){
+  let a=c.slice(i,i+4);
+  out.push({
+   t:a[0].t,o:a[0].o,
+   h:Math.max(...a.map(x=>x.h)),
+   l:Math.min(...a.map(x=>x.l)),
+   c:a[3].c
+  });
+ }
+ return out;
+}
+
+async function getCandles(interval,range){
+ const url="https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?range="+range+"&interval="+interval;
+ const response=await fetch(url);
+ if(!response.ok)throw new Error("HTTP "+response.status);
+ const json=await response.json();
+ const result=json.chart&&json.chart.result&&json.chart.result[0];
+ if(!result)throw new Error("Data XAUUSD tidak tersedia");
+ const q=result.indicators.quote[0];
+ let out=[];
+ for(let i=0;i<result.timestamp.length;i++){
+  let o=q.open[i],h=q.high[i],l=q.low[i],c=q.close[i];
+  if([o,h,l,c].every(Number.isFinite)){
+   out.push({t:result.timestamp[i],o,h,l,c});
+  }
+ }
+ if(out.length<60)throw new Error("Jumlah candle belum cukup");
+ return out;
+}
+
+function renderTF(label,c){
+ let x=trend(c);
+ let s=structure(c);
+ return `<tr><td>${label}</td><td class="${x.t==="BULLISH"?"green":x.t==="BEARISH"?"red":"yellow"}">${x.t}</td><td>${fmt(x.r)}</td><td>${x.e20>x.e50?"EMA20 > EMA50":"EMA20 < EMA50"}</td></tr>`;
+}
+
+function analyze(c15,c1,c4){
+ let x15=trend(c15),x1=trend(c1),x4=trend(c4);
+ let s15=structure(c15),s1=structure(c1),s4=structure(c4);
+ let sw=detectSweep(c15,s15.p);
+ let br=detectBreak(c15,s15.p);
+ let z=zones(c15);
+ let score=0;
+ if(x4.t==="BULLISH")score++;
+ if(x1.t==="BULLISH")score++;
+ if(x15.t==="BULLISH")score++;
+ if(s15.s==="BULLISH")score++;
+ if(x4.t==="BEARISH")score--;
+ if(x1.t==="BEARISH")score--;
+ if(x15.t==="BEARISH")score--;
+ if(s15.s==="BEARISH")score--;
+ if(sw.ssl)score++;
+ if(sw.bsl)score--;
+
+ let signal="WAIT";
+ if(score>=3)signal="BUY";
+ if(score<=-3)signal="SELL";
+
+ let reasons=[];
+ reasons.push("H4: "+x4.t+"; H1: "+x1.t+"; M15: "+x15.t);
+ reasons.push("Struktur M15: "+s15.s+" ("+s15.h+" / "+s15.l+")");
+ reasons.push("Break struktur: "+br);
+ reasons.push(sw.bsl?"Buy Side Sweep terdeteksi pada candle terakhir.":
+  sw.ssl?"Sell Side Sweep terdeteksi pada candle terakhir.":"Belum ada sweep pada candle terakhir.");
+ reasons.push("Zona harga: "+z.zone);
+ if(signal==="WAIT")reasons.push("Kondisi belum cukup selaras. Menunggu konfirmasi lebih lanjut.");
+ else reasons.push("Skenario "+signal+" memenuhi ambang penilaian sederhana. Ini bukan kepastian arah harga.");
+
+ return {x15,x1,x4,s15,s1,s4,sw,br,z,signal,reasons};
+}
+
+function render(a,c15){
+ const last=c15[c15.length-1].c;
+ $("price").textContent=fmt(last);
+ $("updated").textContent="Pembaruan: "+new Date().toLocaleString("id-ID");
+ $("connection").textContent="TERHUBUNG";
+ $("connection").style.color="#48d69a";
+ $("signal").textContent=a.signal;
+ $("signal").className="signal "+(a.signal==="BUY"?"green":a.signal==="SELL"?"red":"yellow");
+ $("signalReason").textContent="Penilaian kondisi multi-timeframe. Bukan prediksi pasti.";
+ $("timeframes").innerHTML=renderTF("H4",market.c4)+renderTF("H1",market.c1)+renderTF("M15",market.c15);
+
+ $("structure4").textContent=a.s4.s;
+ $("structure1").textContent=a.s1.s;
+ $("structure15").textContent=a.s15.s;
+ $("break").textContent=a.br;
+ $("bsl").textContent=Number.isFinite(a.sw.high)?fmt(a.sw.high):"---";
+ $("ssl").textContent=Number.isFinite(a.sw.low)?fmt(a.sw.low):"---";
+ $("sweep").textContent=a.sw.bsl?"BUY SIDE SWEEP":a.sw.ssl?"SELL SIDE SWEEP":"TIDAK ADA";
+ $("equal").textContent="Perlu pemeriksaan manual";
+ $("ema20").textContent=fmt(a.x15.e20);
+ $("ema50").textContent=fmt(a.x15.e50);
+ $("rsi").textContent=fmt(a.x15.r);
+ $("atr").textContent=fmt(a.x15.a);
+ $("supply").textContent=a.z.supply;
+ $("demand").textContent=a.z.demand;
+ $("fvg").textContent=a.z.fvg;
+ $("zone").textContent=a.z.zone;
+
+ let entry=last,sl=NaN,tp=NaN,risk=NaN;
+ if(a.signal!=="WAIT"&&Number.isFinite(a.x15.a)){
+  risk=Math.max(a.x15.a*1.5,0.01);
+  if(a.signal==="BUY"){sl=entry-risk;tp=entry+risk*2;}
+  if(a.signal==="SELL"){sl=entry+risk;tp=entry-risk*2;}
+ }
+ $("simDirection").textContent=a.signal;
+ $("entry").textContent=fmt(entry);
+ $("sl").textContent=Number.isFinite(sl)?fmt(sl):"Menunggu";
+ $("tp").textContent=Number.isFinite(tp)?fmt(tp):"Menunggu";
+ $("riskDistance").textContent=Number.isFinite(risk)?fmt(risk):"---";
+ $("reasons").innerHTML=a.reasons.map(x=>"<li>"+x+"</li>").join("");
+}
+
+async function loadData(){
+ const btn=$("refresh");
+ btn.disabled=true;
+ btn.textContent="MEMUAT DATA...";
+ $("connection").textContent="MENGHUBUNGKAN";
+ try{
+  const [c15,c1]=await Promise.all([
+   getCandles("15m","5d"),
+   getCandles("1h","1mo")
+  ]);
+  const c4=aggregate4h(c1);
+  if(c4.length<30)throw new Error("Data H4 belum cukup");
+  market={c15,c1,c4};
+  const result=analyze(c15,c1,c4);
+  render(result,c15);
+ }catch(e){
+  $("connection").textContent="GAGAL TERHUBUNG";
+  $("connection").style.color="#ff7777";
+  $("signal").textContent="DATA TIDAK TERSEDIA";
+  $("signal").className="signal red";
+  $("signalReason").textContent=e.message;
+  $("reasons").innerHTML="<li>Periksa koneksi internet.</li><li>Jika sumber data menolak permintaan dari browser, sistem tidak dapat menganalisis sampai sumber data tersedia.</li><li>Jangan gunakan angka lama sebagai sinyal terbaru.</li>";
+  console.error(e);
+ }finally{
+  btn.disabled=false;
+  btn.textContent="PERBARUI ANALISIS";
+ }
+}
+loadData();
+</script>
+</body>
+</html>
